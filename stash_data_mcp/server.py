@@ -16,7 +16,7 @@ DBID  = os.environ["DBID"]
 
 # Initialize Astra client and MCP server
 db  = AstraDatabase(TOKEN, DBID)
-mcp = FastMCP("FastastraMCPServer")
+mcp = FastMCP("stash-data-mcp")
 
 
 def make_index_search(tbl, table_name: str, col: str):
@@ -162,6 +162,12 @@ def register_table_tools(mcp: FastMCP, tbl):
     list_all.__doc__ = f"Retrieve all rows from `{name}`."
     mcp.tool(name=f"{name}_list_all")(list_all)
 
+    def drop():
+        return tbl.drop()
+    drop.__doc__ = f"drop table `{name}`."
+    mcp.tool(name=f"drop_table_{name}")(drop)
+
+
     # get_by_pk (typed)
     mcp.tool(name=f"{name}_get_by_pk")(make_typed_get_by_pk(tbl, name, pks))
 
@@ -207,7 +213,7 @@ TYPE_MAP = {
 
 def create_table(
     table_name: str,
-    schema: Dict[str, object],
+    columns: Dict[str, str],
     partition_keys: List[str]
 ):
     """
@@ -221,7 +227,7 @@ def create_table(
 
     Parameters:
       table_name (str): Name of the new table.
-      schema (Dict[str|type, str|type]): Mapping column→type‐name (string) or Python type.
+      columns (Dict[str|type, str|type]): Mapping column→type‐name (string) or Python type.
       partition_keys (List[str]): Columns to use as the partition key; each must appear in `schema`.
 
     Returns:
@@ -229,7 +235,9 @@ def create_table(
     """
     # 1) Build real_schema: map strings→types, accept real types
     real_schema = {}
-    for col, typ in schema.items():
+    if columns is None:
+        raise ValueError("Schema is required to create a table.")
+    for col, typ in columns.items():
         # If the user passed a string, map it
         if isinstance(typ, str):
             key = typ.strip().lower()
@@ -251,7 +259,7 @@ def create_table(
     missing = [pk for pk in partition_keys if pk not in real_schema]
     if missing:
         raise ValueError(
-            f"Partition key(s) {missing} not found in schema columns {list(real_schema.keys())}"
+            f"Error creating table '{table_name}': Partition key(s) {missing} not found in parsed columns: {list(real_schema.keys())} columns: {columns}"
         )
 
     # 3) Create or fetch the Table and apply schema
