@@ -279,6 +279,8 @@ def create_index(table_name: str, column: str):
     return {"status": "indexed", "table": table_name, "column": column}
 mcp.tool(name="create_index")(create_index)
 
+def run():
+    mcp.run()
 
 if __name__ == "__main__":
     mcp.run()
