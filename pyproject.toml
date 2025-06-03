@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "dotenv>=0.9.9",
-    "fastastra>=0.1.37",
+    "fastastra>=0.1.38",
 ]
 
 [dependency-groups]
